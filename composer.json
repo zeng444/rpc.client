@@ -1,0 +1,21 @@
+{
+  "name": "janfish/rpc-client",
+  "description": "janfish rpc client",
+  "authors": [
+    {
+      "name": "Robert",
+      "email": "robert@janfish.cn"
+    }
+  ],
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=7.1.0",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Janfish\\Rpc\\":"src/"
+    }
+  }
+}

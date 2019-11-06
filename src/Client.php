@@ -149,7 +149,7 @@ class Client
         ];
         //sort by dict
         $ctx['signature'] = $signType(sprintf('appId=%s&algorithm=%s&call=%s&secret=%s&service=%s&timestamp=%s', $id, $signType ?: 'sha1', $ctx['call'], $secret, $ctx['service'], $ctx['timestamp']));
-        return json_encode($ctx, JSON_NUMERIC_CHECK);
+        return json_encode($ctx);
     }
 
     /** parse response data

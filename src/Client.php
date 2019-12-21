@@ -2,10 +2,8 @@
 
 namespace Janfish\Rpc;
 
-use Janfish\Rpc\Client\ClientInterface;
-use Janfish\Rpc\Client\Http;
+use Janfish\Rpc\Client\ClientTrait;
 use Janfish\Rpc\Client\Exception;
-use Janfish\Rpc\Client\Socket;
 
 /**
  * Janfish RPC client
@@ -16,6 +14,7 @@ use Janfish\Rpc\Client\Socket;
  */
 class Client
 {
+    use ClientTrait;
 
     /**
      * @var
@@ -36,6 +35,11 @@ class Client
      * @var
      */
     protected static $servicePrefix;
+
+    /**
+     *
+     */
+    protected static $clientName = 'Client';
 
     /**
      * initialize Rpc client
@@ -90,10 +94,11 @@ class Client
         if (!isset($config['id']) || !isset($config['secret']) || !isset($config['host'])) {
             throw new Exception('Config error');
         }
-        return $this->parse((self::getClient($config))->remoteCall($this->make($methodName, $args, $config['id'], $config['secret'], $config['signType'] ?? 'sha1')));
+        return $this->parse((self::getClient($config))->remoteCall($this->make($this->serviceName, $methodName, $args, $config['id'], $config['secret'], $config['signType'] ?? 'sha1')));
     }
 
     /**
+     * 载入批量调度器
      * Author:Robert
      *
      * @param $methodName
@@ -103,33 +108,18 @@ class Client
     public static function __callStatic($methodName, array $args)
     {
         $className = get_called_class();
+        if ($className === self::$servicePrefix.self::$clientName) {
+            return (new Client\Batch(self::$config))->$methodName(...$args);
+        }
         $instance = new $className();
         return $instance->$methodName(...$args);
     }
 
-    /**
-     * Author:Robert
-     *
-     * @param array $config
-     * @return ClientInterface
-     */
-    public static function getClient(array $config = []): ClientInterface
-    {
-        //TODO lake of web socket client
-        $host = $config['host'] ?? '';
-        if (preg_match('/^http/i', $host)) {
-            return new Http($config);
-        } elseif (preg_match('/^tcp/i', $host)) {
-            return new Socket($config);
-        } else {
-            return new Socket($config);
-        }
-    }
 
     /**
-     * Make Request and generate signature
      * Author:Robert
      *
+     * @param string $service
      * @param string $methodName
      * @param array $args
      * @param string $id
@@ -137,38 +127,19 @@ class Client
      * @param string $signType
      * @return string
      */
-    protected function make(string $methodName, array $args, string $id, string $secret, string $signType = 'sha1'): string
+    protected function make(string $service, string $methodName, array $args, string $id, string $secret, string $signType = 'sha1'): string
     {
         $ctx = [
             'algorithm' => $signType,
             'appId' => $id,
-            'service' => $this->serviceName,
+            'service' => $service,
             'call' => $this->className.'::'.$methodName,
             'args' => $args,
             'timestamp' => microtime(true),
         ];
-        //sort by dict
-        $ctx['signature'] = $signType(sprintf('appId=%s&algorithm=%s&call=%s&secret=%s&service=%s&timestamp=%s', $id, $signType ?: 'sha1', $ctx['call'], $secret, $ctx['service'], $ctx['timestamp']));
+        $ctx['signature'] = $this->signature($id, $secret, $service, $ctx['call'], $ctx['timestamp'], $signType);
         return json_encode($ctx);
     }
 
-    /** parse response data
-     * Author:Robert
-     *
-     * @param string $res
-     * @return array
-     * @throws Exception
-     */
-    protected function parse(string $res)
-    {
-        $ctx = json_decode($res, true);
-        if (isset($ctx['ok']) && $ctx['ok']) {
-            return $ctx['data'];
-        }
-        $message = $ctx['error'];
-        if (isset($ctx['trace']) && $ctx['trace']) {
-            $message .= "\n{$ctx['trace']}";
-        }
-        throw new Exception($message ?: "exception data:".$res);
-    }
+
 }

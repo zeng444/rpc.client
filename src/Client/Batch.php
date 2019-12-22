@@ -42,24 +42,21 @@ class Batch
     /**
      * Author:Robert
      *
-     * @param $commands
+     * @param array $commands
      * @return array
-     * @throws Exception
      */
     public function findOutService(array $commands): array
     {
         $data = [];
         foreach ($commands as $assign => $command) {
-            if (!isset($command['class']) || !isset($command['method'])) {
-                throw new Exception('Method or class params not exist');
-            }
-            $command['class'] = (strpos($command['class'], '\\') === 0) ? substr($command['class'], 1) : $command['class'];
-            $guess = explode('\\', preg_replace('/^'.preg_quote(self::$servicePrefix).'/', '', $command['class']));
+            $class = $command['class'] ?? ($command[0] ?? '');
+            $class = (strpos($class, '\\') === 0) ? substr($class, 1) : $class;
+            $guess = explode('\\', preg_replace('/^'.preg_quote(self::$servicePrefix).'/', '', $class));
             $data[$guess[0]][] = [
                 'assign' => $assign,
                 'remote' => [
-                    'call' => implode('\\', array_slice($guess, 1)).'::'.$command['method'],
-                    'args' => $command['args'] ?? [],
+                    'call' => implode('\\', array_slice($guess, 1)).'::'.($command['method'] ?? ($command[1] ?? '')),
+                    'args' => $command['args'] ?? ($command[2] ?? []),
                 ],
             ];
         }
@@ -120,7 +117,4 @@ class Batch
         $ctx['signature'] = $this->signature($id, $secret, $service, $call, $ctx['timestamp'], $signType);
         return json_encode($ctx);
     }
-
-
 }
-

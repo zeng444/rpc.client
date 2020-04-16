@@ -75,15 +75,20 @@ class Batch
     {
         $isSingle = (isset($batchCommand['class']) && isset($batchCommand['method']));
         $batchCommand = $isSingle ? [$batchCommand] : $batchCommand;
-        $config = $this->_config;
+        $configs = $this->_config;
         $services = $this->findOutService($batchCommand);
         $return = [];
         foreach ($services as $name => $service) {
-            if (!isset($config[$name])) {
+            if (!isset($configs[$name])) {
                 throw new Exception('不存在的服务');
             }
+            $config = $configs[$name];
+            //这里做了负载算法
+            if (isset($config[0])) {
+                $config = $this->balance($config);
+            }
             $commands = array_column($service, 'remote');
-            $rep = $this->parse((self::getClient($config[$name]))->remoteCall($this->make($name, $commands, $config[$name]['id'], $config[$name]['secret'], $config[$name]['signType'] ?? 'sha1')));
+            $rep = $this->parse((self::getClient($config))->remoteCall($this->make($name, $commands, $config['id'], $config['secret'], $config['signType'] ?? 'sha1')));
             foreach ($service as $index => $item) {
                 $return[$item['assign']] = $rep[$index];
             }

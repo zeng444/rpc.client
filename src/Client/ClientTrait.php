@@ -36,6 +36,16 @@ trait ClientTrait
     }
 
     /**
+     * 负载均衡RR
+     * Author:Robert
+     *
+     */
+    protected function balance(array $configs=[])
+    {
+        return $configs[array_rand($configs)];
+    }
+
+    /**
      * 签名算法
      * Author:Robert
      *

@@ -76,7 +76,7 @@ class Socket implements ProtocolInterface
         $endPos = substr(self::RPC_EOL, 0, 1);
         $fp = @stream_socket_client($this->host, $errNo, $errStr, $this->connectTimeout);
         if (!$fp) {
-            throw new Exception("stream_socket_client fail errno={$errNo} errstr={$errStr}");
+            throw new Exception($this->host." stream_socket_client fail errno={$errNo} errstr={$errStr}");
         }
         fwrite($fp, $ctx.self::RPC_EOL);
         stream_set_timeout($fp, $this->timeout);
@@ -85,7 +85,7 @@ class Socket implements ProtocolInterface
             $tmp = fgets($fp, 1024);
             $info = stream_get_meta_data($fp);
             if ($info['timed_out']) {
-                throw new Exception("stream_socket_client timeout");
+                throw new Exception($this->host." stream_socket_client timeout");
             }
             $pos = strpos($tmp, $endPos);
             if ($pos !== false) {
